@@ -1,0 +1,24 @@
+[package]
+name = "dlsh"
+version = "0.1.0"
+authors = ["cympfh <cympfh@gmail.com>"]
+edition = "2018"
+
+[[bin]]
+name = "linear"
+path = "src/linear.rs"
+
+[[bin]]
+name = "sigmoid"
+path = "src/sigmoid.rs"
+
+[[bin]]
+name = "relu"
+path = "src/relu.rs"
+
+[[bin]]
+name = "mse"
+path = "src/mse.rs"
+
+[dependencies]
+structopt = "0.3"
