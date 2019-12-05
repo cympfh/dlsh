@@ -16,7 +16,7 @@ fn main() {
     let opt = Opts::from_args();
 
     let x = matrix::read();
-    let y = matrix::read_from_file(opt.truefile);
+    let y = matrix::read_from_file(&opt.truefile);
 
     let (h, w) = matrix::shape(&x);
     let z: Matrix = (0..h).map(|i|

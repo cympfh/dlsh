@@ -19,8 +19,10 @@ cat <<EOM > data/true_y
 -1
 EOM
 
+rm -f data/fc
+
 echo "Forwarding"
-cat data/x | linear | sigmoid
+cat data/x | linear --dim 1 -w data/fc | sigmoid
 
 echo "MSE Loss"
-cat data/x | linear | sigmoid | mse -t data/true_y
+cat data/x | linear --dim 1 -w data/fc | sigmoid | mse -t data/true_y

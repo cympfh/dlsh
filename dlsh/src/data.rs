@@ -4,13 +4,41 @@ pub mod matrix {
 
     use std::fs::File;
     use std::path::Path;
-    use std::io::BufReader;
+    use std::io::{BufReader, LineWriter};
     use std::io::prelude::*;
+    use rand::Rng;
 
     pub type Matrix = Vec<Vec<f32>>;
 
     pub fn shape(x: &Matrix) -> (usize, usize) {
         (x.len(), x[0].len())
+    }
+
+    pub fn dot(x: &Matrix, y: &Matrix) -> Matrix {
+        let h = x.len();
+        let w = y.len();
+        let v = y[0].len();
+        let mut z = vec![vec![0.0; v]; h];
+        for i in 0..h {
+            for j in 0..w {
+                for k in 0..v {
+                    z[i][k] += x[i][j] * y[j][k];
+                }
+            }
+        }
+        z
+    }
+
+    pub fn random(shape: (usize, usize)) -> Matrix {
+        let (h, w) = shape;
+        let mut z = vec![vec![0.0; w]; h];
+        let mut rng = rand::prelude::thread_rng();
+        for i in 0..h {
+            for j in 0..w {
+                z[i][j] = rng.gen();
+            }
+        }
+        z
     }
 
     pub fn read() -> Matrix {
@@ -25,7 +53,7 @@ pub mod matrix {
         }).collect()
     }
 
-    pub fn read_from_file(path: String) -> Matrix {
+    pub fn read_from_file(path: &String) -> Matrix {
         let file = File::open(Path::new(&path)).unwrap();
         let buf = BufReader::new(file);
         let mut x: Matrix = vec![];
@@ -53,6 +81,23 @@ pub mod matrix {
                 }
             }
             println!("");
+        }
+    }
+
+    pub fn write_to_file(y: &Matrix, path: &String) {
+        let file = File::create(path).unwrap();
+        let mut file = LineWriter::new(file);
+        let (h, w) = shape(&y);
+        let _ = file.write_all(format!("{} {}\n", h, w).as_bytes());
+        for i in 0..h {
+            for j in 0..w {
+                if j == 0 {
+                    let _ = file.write_all(format!("{}", y[i][j]).as_bytes());
+                } else {
+                    let _ = file.write_all(format!(" {}", y[i][j]).as_bytes());
+                }
+            }
+            let _ = file.write_all(b"\n");
         }
     }
 }
