@@ -9,12 +9,8 @@ name = "linear"
 path = "src/linear.rs"
 
 [[bin]]
-name = "sigmoid"
-path = "src/sigmoid.rs"
-
-[[bin]]
-name = "relu"
-path = "src/relu.rs"
+name = "activate"
+path = "src/activate.rs"
 
 [[bin]]
 name = "mse"
@@ -23,3 +19,4 @@ path = "src/mse.rs"
 [dependencies]
 structopt = "0.3"
 rand = "0.7.2"
+rand_distr = "0.2.2"

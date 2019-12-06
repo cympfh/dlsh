@@ -6,7 +6,7 @@ pub mod matrix {
     use std::path::Path;
     use std::io::{BufReader, LineWriter};
     use std::io::prelude::*;
-    use rand::Rng;
+    use rand_distr::{Normal, Distribution};
 
     pub type Matrix = Vec<Vec<f32>>;
 
@@ -32,10 +32,10 @@ pub mod matrix {
     pub fn random(shape: (usize, usize)) -> Matrix {
         let (h, w) = shape;
         let mut z = vec![vec![0.0; w]; h];
-        let mut rng = rand::prelude::thread_rng();
+        let normal = Normal::new(0.0, 0.01).unwrap();
         for i in 0..h {
             for j in 0..w {
-                z[i][j] = rng.gen();
+                z[i][j] = normal.sample(&mut rand::thread_rng());
             }
         }
         z
