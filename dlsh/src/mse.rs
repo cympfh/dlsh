@@ -28,6 +28,13 @@ fn main() {
     let x = matrix::read();
     let y = matrix::read_from_file(&opt.truefile);
 
+    if matrix::shape(&x) != matrix::shape(&y) {
+        panic!(format!(
+            "Imcompatible shape. mse can accept same shape matrices: shape(input) = {:?}, shape(true) = {:?}",
+            matrix::shape(&x),
+            matrix::shape(&y)));
+    }
+
     let (h, w) = matrix::shape(&x);
     let z: Matrix = (0..h).map(|i|
         (0..w).map(|j|

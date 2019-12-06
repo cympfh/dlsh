@@ -38,10 +38,16 @@ fn main() {
         if let Some(dim) = opt.dim {
             matrix::random((w, dim))
         } else {
-            panic!()
+            panic!("Undetermined dim. Give --dim or existence weight file.")
         }
     };
     let d = matrix::shape(&weight).1;
+
+    if w != weight.len() {
+        panic!(format!("Incompatible weight dimention; dim(input) = {}, dim(weight) = {} + bias",
+                       w - 1,
+                       weight.len() - 1));
+    }
 
     let y: Matrix = matrix::dot(&x, &weight);
     matrix::write(&y);

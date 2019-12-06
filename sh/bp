@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#
+# Converting `+` as a bidirectional pipe, and `/` as a normal pipe (`|`)
+#
+
+make_new_fifo() {
+    FIFONAME=/tmp/dlsh.$$.$id
+    mkfifo $FIFONAME
+    fifos="$fifos $FIFONAME"
+    echo $FIFONAME
+}
+
+id=0
+fifos=
+last_fifo=
+
+cmd=
+while [ $# -gt 0 ]; do
+    case "$1" in
+        "+" )
+            I=$(make_new_fifo)
+            cmd="$cmd -i ${I} |"
+            id=$(( id + 1 ))
+            fifos="$fifos $I"
+            last_fifo=$I
+            ;;
+        "/" )
+            cmd="$cmd |"
+            ;;
+        * )
+            cmd="$cmd $1"
+            if [ ! -z "$last_fifo" ]; then
+                cmd="$cmd -o ${last_fifo}"
+                last_fifo=
+            fi
+            ;;
+    esac
+    shift
+done
+
+bash -c "$cmd"
+
+[ ! -z "$fifos" ] && rm -f $fifos

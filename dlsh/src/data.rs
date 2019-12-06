@@ -54,19 +54,22 @@ pub mod matrix {
     }
 
     pub fn read_from_file(path: &String) -> Matrix {
-        let file = File::open(Path::new(&path)).unwrap();
-        let buf = BufReader::new(file);
-        let mut x: Matrix = vec![];
-        for (i, line) in buf.lines().enumerate() {
-            if i == 0 {
-                // ignore size header
-            } else {
-                x.push(
-                    line.unwrap().split_whitespace().map(|token| token.parse().ok().unwrap()).collect()
-                )
+        if let Ok(file) = File::open(Path::new(&path)) {
+            let buf = BufReader::new(file);
+            let mut x: Matrix = vec![];
+            for (i, line) in buf.lines().enumerate() {
+                if i == 0 {
+                    // ignore size header
+                } else {
+                    x.push(
+                        line.unwrap().split_whitespace().map(|token| token.parse().ok().unwrap()).collect()
+                    )
+                }
             }
+            return x
+        } else {
+            panic!(format!("No such file: {}", path));
         }
-        return x
     }
 
     pub fn write(y: &Matrix) {

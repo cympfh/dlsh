@@ -32,8 +32,8 @@ fn main() {
     matrix::write(&y);
 
     if let Some(gradin_file) = opt.gradin {
+        let gy = matrix::read_from_file(&gradin_file);
         if let Some(gradout_file) = opt.gradout {
-            let gy = matrix::read_from_file(&gradin_file);
             let gx: Matrix = (0..h).map(|i|
                 (0..w).map(|j|
                     gy[i][j] * y[i][j] * (1.0 - y[i][j])
