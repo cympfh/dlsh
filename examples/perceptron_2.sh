@@ -1,16 +1,18 @@
 #!/bin/bash
 
+#
+# Soliving XOR with 2-layer Perceptoron
+#
+# XOR: 1 + 1 = 0 + 0 = 0, 1 + 0 = 0 + 1 = 1
+#
+
 PATH=$PATH:../bin/
 rm -rf data/
 mkdir -p data
 
-# Data:
-#
-# XOR: 1 + 1 = 0 + 0 = 0, 1 + 0 = 0 + 1 = 1
-#
+# Data
 ########################
 
-# The last 1 is for bias
 cat <<EOM > data/x
 4 3
 1 1
