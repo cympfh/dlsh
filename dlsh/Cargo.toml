@@ -13,8 +13,8 @@ name = "activate"
 path = "src/activate.rs"
 
 [[bin]]
-name = "mse"
-path = "src/mse.rs"
+name = "loss"
+path = "src/loss.rs"
 
 [dependencies]
 structopt = "0.3"

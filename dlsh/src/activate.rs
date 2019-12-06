@@ -19,16 +19,31 @@ struct Opts {
 enum Activation {
     Sigmoid,
     Relu,
+    Softmax,
 }
 
+use Activation::*;
+
 impl Activation {
-    fn forward(&self, x: f32) -> f32 {
+    fn summary(&self, xs: &Vec<f32>) -> f32 {
         match self {
-            Activation::Sigmoid => {
+            Sigmoid => 0.0,
+            Relu => 0.0,
+            Softmax => {
+                xs.iter().map(|&x| x.exp()).sum()
+            },
+        }
+    }
+    fn forward(&self, x: f32, sum: f32) -> f32 {
+        match self {
+            Sigmoid => {
                 1.0 / (1.0 + f32::exp(-x))
             },
-            Activation::Relu => {
+            Relu => {
                 if x > 0.0 { x } else { 0.0 }
+            },
+            Softmax => {
+                x.exp() / sum
             },
         }
     }
@@ -44,6 +59,9 @@ impl Activation {
                     0.0
                 }
             },
+            Activation::Softmax => {
+                gy * y * (1.0 - y)
+            },
         }
     }
 }
@@ -57,16 +75,18 @@ fn main() {
     let act = match opt.acttype.as_ref() {
         "sigmoid" => Activation::Sigmoid,
         "relu" => Activation::Relu,
+        "softmax" => Activation::Softmax,
         _ => {
             panic!(format!("Unknown activation type: {}", opt.acttype))
         }
     };
 
-    let y: Matrix = (0..h).map(|i|
+    let y: Matrix = (0..h).map(|i| {
+        let sum = act.summary(&x[i]);
         (0..w).map(|j|
-            act.forward(x[i][j])
+            act.forward(x[i][j], sum)
         ).collect()
-    ).collect();
+    }).collect();
     matrix::write(&y);
 
     if let Some(gradin_file) = opt.gradin {
