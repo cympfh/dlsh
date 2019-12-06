@@ -12,25 +12,62 @@ use structopt::StructOpt;
 struct Opts {
     #[structopt(short = "w", long = "weight", required = true)]
     weightfile: String,
-    #[structopt(short = "d", long = "dim", required = true)]
-    dim: usize,
+    #[structopt(short = "d", long = "dim")]
+    dim: Option<usize>,
+    #[structopt(short = "i", long = "in")]
+    gradin: Option<String>,
+    #[structopt(short = "o", long = "out")]
+    gradout: Option<String>,
+    #[structopt(long = "lr", default_value = "0.01")]
+    lr: f32,
 }
 
 fn main() {
     let opt = Opts::from_args();
 
-    let x = matrix::read();
+    let mut x = matrix::read();
+    // concat bias 1
+    for i in 0..x.len() {
+        x[i].push(1.0);
+    }
+    let (h, w) = matrix::shape(&x);
 
-    // load weights
-    let w = if Path::new(&opt.weightfile).exists() {
+    let mut weight = if Path::new(&opt.weightfile).exists() {
         matrix::read_from_file(&opt.weightfile)
     } else {
-        let w = matrix::random((x[0].len(), opt.dim));
-        matrix::write_to_file(&w, &opt.weightfile);
-        w
+        if let Some(dim) = opt.dim {
+            matrix::random((w, dim))
+        } else {
+            panic!()
+        }
     };
+    let d = matrix::shape(&weight).1;
 
-    let y: Matrix = matrix::dot(&x, &w);
+    let y: Matrix = matrix::dot(&x, &weight);
     matrix::write(&y);
 
+    if let Some(gradin_file) = opt.gradin {
+        let gy = matrix::read_from_file(&gradin_file);
+        if let Some(gradout_file) = opt.gradout {
+            let gx: Matrix = (0..h).map(|i|
+                (0..w).map(|j|
+                    (0..d).map(|k| weight[j][k] * gy[i][k]).sum()
+                ).collect()
+            ).collect();
+            matrix::write_to_file(&gx, &gradout_file);
+        }
+        // update weights
+        let gw: Matrix = (0..w).map(|j|
+            (0..d).map(|k|
+                (0..h).map(|i| x[i][j] * gy[i][k]).sum()
+            ).collect()
+        ).collect();
+        for j in 0..w {
+            for k in 0..d {
+                weight[j][k] -= gw[j][k] * opt.lr;
+            }
+        }
+        matrix::write_to_file(&weight, &opt.weightfile);
+
+    }
 }
