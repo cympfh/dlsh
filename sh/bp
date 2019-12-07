@@ -5,7 +5,7 @@
 #
 
 make_new_fifo() {
-    FIFONAME=/tmp/dlsh.$$.$id
+    FIFONAME=/tmp/dlsh.$$.$RANDOM.$id
     mkfifo $FIFONAME
     fifos="$fifos $FIFONAME"
     echo $FIFONAME

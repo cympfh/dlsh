@@ -12,14 +12,19 @@ use structopt::StructOpt;
 struct Opts {
     #[structopt(short = "w", long = "weight", required = true)]
     weightfile: String,
+    /// output dimention (>= 1)
     #[structopt(short = "d", long = "dim")]
     dim: Option<usize>,
     #[structopt(short = "i", long = "in")]
     gradin: Option<String>,
     #[structopt(short = "o", long = "out")]
     gradout: Option<String>,
+    /// learning rate
     #[structopt(long = "lr", default_value = "0.01")]
     lr: f32,
+    /// L2 regularization
+    #[structopt(long = "l2", default_value = "0.0")]
+    l2: f32,
 }
 
 fn main() {
@@ -68,6 +73,17 @@ fn main() {
                 (0..h).map(|i| x[i][j] * gy[i][k]).sum()
             ).collect()
         ).collect();
+        // L2 regularization
+        if opt.l2 > 0.0 {
+            let wr = 1.0 - opt.lr * opt.l2;
+            for j in 0..w {
+                for k in 0..d {
+                    weight[j][k] *= wr;
+                }
+            }
+
+        }
+        // min Loss
         for j in 0..w {
             for k in 0..d {
                 weight[j][k] -= gw[j][k] * opt.lr;
