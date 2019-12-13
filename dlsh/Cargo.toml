@@ -16,6 +16,10 @@ path = "src/activate.rs"
 name = "loss"
 path = "src/loss.rs"
 
+[[bin]]
+name = "acc"
+path = "src/acc.rs"
+
 [dependencies]
 structopt = "0.3"
 rand = "0.7.2"
