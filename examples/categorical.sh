@@ -29,7 +29,7 @@ average() {
 }
 
 for i in `seq 3`; do
-    echo -n "#iter: #{i} -- Loss: "
+    echo -n "#iter: ${i} -- Loss: "
     cat data/x |
         bp linear --dim 3 -w data/fc --lr 2 + activate softmax + kl -t data/y |
         average
