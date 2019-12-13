@@ -1,3 +1,5 @@
+use std::env;
+
 mod data;
 use data::matrix;
 use data::matrix::Matrix;
@@ -22,6 +24,17 @@ enum Activation {
     Softmax,
 }
 
+/// clipped (-20, 80)
+fn exp(x: f32) -> f32 {
+    if x > 80.0 {
+        (80 as f32).exp()
+    } else if x < -20.0 {
+        (-20 as f32).exp()
+    } else {
+        x.exp()
+    }
+}
+
 use Activation::*;
 
 impl Activation {
@@ -30,20 +43,20 @@ impl Activation {
             Sigmoid => 0.0,
             Relu => 0.0,
             Softmax => {
-                xs.iter().map(|&x| x.exp()).sum()
+                xs.iter().map(|&x| exp(x)).sum()
             },
         }
     }
     fn forward(&self, x: f32, sum: f32) -> f32 {
         match self {
             Sigmoid => {
-                1.0 / (1.0 + f32::exp(-x))
+                1.0 / (1.0 + exp(-x))
             },
             Relu => {
                 if x > 0.0 { x } else { 0.0 }
             },
             Softmax => {
-                x.exp() / sum
+                exp(x) / sum
             },
         }
     }
@@ -68,6 +81,7 @@ impl Activation {
 
 fn main() {
     let opt = Opts::from_args();
+    let nan_debug = env::var("NAN_DEBUG").is_ok();
 
     let x = matrix::read();
     let (h, w) = matrix::shape(&x);
@@ -81,6 +95,17 @@ fn main() {
         }
     };
 
+    if nan_debug {
+        let num: usize = x.iter().map(|row| row.iter().filter(|val| val.is_nan()).count()).sum();
+        if num > 0 {
+            eprintln!("[Activation {}] NaN detected from Input ({} / {:?})",
+                      opt.acttype,
+                      num,
+                      (h, w));
+            panic!();
+        }
+    }
+
     let y: Matrix = (0..h).map(|i| {
         let sum = act.summary(&x[i]);
         (0..w).map(|j|
@@ -88,6 +113,20 @@ fn main() {
         ).collect()
     }).collect();
     matrix::write(&y);
+
+    if nan_debug {
+        for i in 0..h {
+            for j in 0..w {
+                if y[i][j].is_nan() {
+                    eprintln!("[Activation {}] NaN detected from Output; forward({}, {}) = NaN",
+                              opt.acttype,
+                              x[i][j], act.summary(&x[i]));
+                    eprintln!("[Activation {}] x[] = {:?}", opt.acttype, &x[i]);
+                    panic!();
+                }
+            }
+        }
+    }
 
     if let Some(gradin_file) = opt.gradin {
         let gy = matrix::read_from_file(&gradin_file);

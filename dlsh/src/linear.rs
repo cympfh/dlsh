@@ -59,6 +59,7 @@ fn main() {
 
     if let Some(gradin_file) = opt.gradin {
         let gy = matrix::read_from_file(&gradin_file);
+
         if let Some(gradout_file) = opt.gradout {
             let gx: Matrix = (0..h).map(|i|
                 (0..w).map(|j|
@@ -73,6 +74,7 @@ fn main() {
                 (0..h).map(|i| x[i][j] * gy[i][k]).sum()
             ).collect()
         ).collect();
+
         // L2 regularization
         if opt.l2 > 0.0 {
             let wr = 1.0 - opt.lr * opt.l2;

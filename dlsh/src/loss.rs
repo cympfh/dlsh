@@ -16,6 +16,13 @@ struct Opts {
     gradout: Option<String>,
 }
 
+const EPS: f32 = 1e-9;
+
+/// clipped [eps, inf)
+fn log(x: f32) -> f32 {
+    (if x < EPS { EPS } else { x }).ln()
+}
+
 #[derive(PartialEq, Eq)]
 enum Loss {
     MSE,
@@ -31,7 +38,7 @@ impl Loss {
                 (x - y).powi(2)
             },
             KL => {
-                x * (x.ln() - y.ln())
+                x * (log(x) - log(y))
             },
         }
     }
@@ -41,7 +48,7 @@ impl Loss {
                 x - y
             },
             KL => {
-                x.ln() - y.ln() + 1.0
+                log(x) - log(y) + 1.0
             },
         }
     }
@@ -54,7 +61,7 @@ fn main() {
     let x = matrix::read();
     let (h, w) = matrix::shape(&x);
 
-    let mut y = matrix::read_from_file(&opt.truefile);
+    let y = matrix::read_from_file(&opt.truefile);
     if matrix::shape(&y) != (h, w) {
         panic!(format!(
             "Imcompatible shape. Can accept same shape matrices: shape(input) = {:?}, shape(true) = {:?}",
@@ -69,23 +76,6 @@ fn main() {
             panic!(format!("Unknown loss type: {}", opt.losstype))
         },
     };
-
-    if loss == KL {
-        // MUST: y > eps; sum y = 1.0
-        let eps: f32 = 0.0000001;
-        for i in 0..h {
-            let mut sum = 0.0;
-            for j in 0..w {
-                if y[i][j] < eps {
-                    y[i][j] = eps;
-                }
-                sum += y[i][j];
-            }
-            for j in 0..w {
-                y[i][j] /= sum;
-            }
-        }
-    }
 
     let z: Matrix = (0..h).map(|i|
         (0..w).map(|j|

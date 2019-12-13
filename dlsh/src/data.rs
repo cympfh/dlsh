@@ -46,7 +46,7 @@ pub mod matrix {
         let mut line = String::new();
         let _ = stdin.read_line(&mut line);
         let shape: Vec<usize> = line.split_whitespace().map(|token| token.parse::<usize>().ok().unwrap()).collect();
-        return (0..shape[0]).map(|_| {
+        (0..shape[0]).map(|_| {
             let mut line = String::new();
             let _ = stdin.read_line(&mut line);
             line.split_whitespace().map(|token| token.parse().ok().unwrap()).collect()
