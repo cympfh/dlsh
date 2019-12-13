@@ -79,7 +79,7 @@ fn main() {
                 if y[i][j] < eps {
                     y[i][j] = eps;
                 }
-                sum = y[i][j];
+                sum += y[i][j];
             }
             for j in 0..w {
                 y[i][j] /= sum;
