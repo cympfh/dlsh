@@ -20,6 +20,10 @@ path = "src/loss.rs"
 name = "acc"
 path = "src/acc.rs"
 
+[[bin]]
+name = "augment"
+path = "src/augment.rs"
+
 [dependencies]
 structopt = "0.3"
 rand = "0.7.2"

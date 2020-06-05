@@ -50,16 +50,19 @@ average() {
     awk c++ | jq -s '. | add / length' | tr -d '\n'
 }
 
-for i in `seq 1000`; do
+for i in `seq 100`; do
     printf "\rEpoch %04d: " $i
-    LR=$( echo 20 0.99 $i | awk '{print $1 * $2 ^ $3}' )
+    LR=$( echo 5 0.99 $i | awk '{print $1 * $2 ^ $3}' )
     printf "; lr = %.4f" $LR
     printf "; loss = "
     cat data/x |
         bp \
+            augment gaussnoise --var 0.3 +\
             linear --dim 5 -w data/fc_1 --lr $LR +\
+            augment gaussnoise --var 0.1 +\
             sigmoid +\
             linear --dim 1 -w data/fc_2 --lr $LR +\
+            augment gaussnoise --var 0.01 +\
             sigmoid +\
             mse -t data/true_y |
         average
