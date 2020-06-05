@@ -1,9 +1,7 @@
-use rand_distr::{Distribution, Normal};
 use std::env;
 
 mod data;
-use data::matrix;
-use data::matrix::Matrix;
+use data::Matrix;
 
 extern crate structopt;
 use structopt::StructOpt;
@@ -26,12 +24,20 @@ enum Augment {
     GaussNoise,
 }
 
+impl Augment {
+    fn forward(&self, x: &Matrix, opt: &Opts) -> Matrix {
+        let (h, w) = x.shape();
+        let noise = Matrix::random(h, w, opt.var);
+        x + &noise
+    }
+}
+
 fn main() {
     let opt = Opts::from_args();
     let nan_debug = env::var("NAN_DEBUG").is_ok();
 
-    let x = matrix::read();
-    let (h, w) = matrix::shape(&x);
+    let x = Matrix::read();
+    let (h, w) = x.shape();
 
     let strategy = match opt.strategy.as_ref() {
         "noise" | "gaussnoise" | "gauss_noise" | "GaussNoise" => Augment::GaussNoise,
@@ -40,8 +46,9 @@ fn main() {
 
     if nan_debug {
         let num: usize = x
+            .data
             .iter()
-            .map(|row| row.iter().filter(|val| val.is_nan()).count())
+            .map(|row| row.data.iter().filter(|val| val.is_nan()).count())
             .sum();
         if num > 0 {
             eprintln!(
@@ -54,18 +61,8 @@ fn main() {
         }
     }
 
-    let normal = Normal::new(0.0, opt.var).unwrap();
-    let y: Matrix = (0..h)
-        .map(|i| {
-            (0..w)
-                .map(|j| {
-                    let noise = normal.sample(&mut rand::thread_rng());
-                    x[i][j] + noise
-                })
-                .collect()
-        })
-        .collect();
-    matrix::write(&y);
+    let y = strategy.forward(&x, &opt);
+    y.write();
 
     if nan_debug {
         for i in 0..h {
@@ -83,9 +80,9 @@ fn main() {
     }
 
     if let Some(gradin_file) = opt.gradin {
-        let gy = matrix::read_from_file(&gradin_file);
+        let gy = Matrix::read_from_file(&gradin_file);
         if let Some(gradout_file) = opt.gradout {
-            matrix::write_to_file(&gy, &gradout_file);
+            gy.write_to_file(&gradout_file);
         }
     }
 }

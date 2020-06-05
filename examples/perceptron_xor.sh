@@ -46,13 +46,9 @@ mkfifo data/grad_act_1
 mkfifo data/grad_act_2
 mkfifo data/grad_fc_2
 
-average() {
-    awk c++ | jq -s '. | add / length' | tr -d '\n'
-}
-
 for i in `seq 100`; do
-    printf "\rEpoch %04d: " $i
-    LR=$( echo 5 0.99 $i | awk '{print $1 * $2 ^ $3}' )
+    printf "\rEpoch: %04d " $i
+    LR=$(dc -e "5 0.99 $i ^*f")
     printf "; lr = %.4f" $LR
     printf "; loss = "
     cat data/x |
@@ -64,9 +60,9 @@ for i in `seq 100`; do
             linear --dim 1 -w data/fc_2 --lr $LR +\
             augment gaussnoise --var 0.01 +\
             sigmoid +\
-            mse -t data/true_y |
-        average
-    printf "\e[K"
+            mse -t data/true_y --summary average |
+            tail -1
+    printf "\e[F"
 done
 echo
 

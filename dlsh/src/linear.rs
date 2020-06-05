@@ -1,6 +1,5 @@
 mod data;
-use data::matrix;
-use data::matrix::Matrix;
+use data::Matrix;
 
 use std::path::Path;
 
@@ -12,6 +11,9 @@ use structopt::StructOpt;
 struct Opts {
     #[structopt(short = "w", long = "weight", required = true)]
     weightfile: String,
+    /// weight initial
+    #[structopt(long = "var", default_value = "0.1")]
+    var: f32,
     /// output dimention (>= 1)
     #[structopt(short = "d", long = "dim")]
     dim: Option<usize>,
@@ -30,50 +32,54 @@ struct Opts {
 fn main() {
     let opt = Opts::from_args();
 
-    let mut x = matrix::read();
+    let mut x = Matrix::read();
     // concat bias 1
     for i in 0..x.len() {
         x[i].push(1.0);
     }
-    let (h, w) = matrix::shape(&x);
+    let (h, w) = x.shape();
 
     let mut weight = if Path::new(&opt.weightfile).exists() {
-        matrix::read_from_file(&opt.weightfile)
+        Matrix::read_from_file(&opt.weightfile)
+    } else if let Some(dim) = opt.dim {
+        Matrix::random(w, dim, opt.var)
     } else {
-        if let Some(dim) = opt.dim {
-            matrix::random((w, dim))
-        } else {
-            panic!("Undetermined dim. Give --dim or existence weight file.")
-        }
+        panic!("Undetermined dim. Give --dim or existence weight file.")
     };
-    let d = matrix::shape(&weight).1;
+    let (_, d) = weight.shape();
 
     if w != weight.len() {
-        panic!(format!("Incompatible weight dimention; dim(input) = {}, dim(weight) = {} + bias",
-                       w - 1,
-                       weight.len() - 1));
+        panic!(format!(
+            "Incompatible weight dimention; dim(input) = {}, dim(weight) = {} + bias",
+            w - 1,
+            weight.len() - 1
+        ));
     }
 
-    let y: Matrix = matrix::dot(&x, &weight);
-    matrix::write(&y);
+    let y: Matrix = &x * &weight;
+    y.write();
 
     if let Some(gradin_file) = opt.gradin {
-        let gy = matrix::read_from_file(&gradin_file);
+        let gy = Matrix::read_from_file(&gradin_file);
 
         if let Some(gradout_file) = opt.gradout {
-            let gx: Matrix = (0..h).map(|i|
-                (0..w).map(|j|
-                    (0..d).map(|k| weight[j][k] * gy[i][k]).sum()
-                ).collect()
-            ).collect();
-            matrix::write_to_file(&gx, &gradout_file);
+            let gx: Matrix = (0..h)
+                .map(|i| {
+                    (0..w)
+                        .map(|j| (0..d).map(|k| weight[j][k] * gy[i][k]).sum())
+                        .collect()
+                })
+                .collect();
+            gx.write_to_file(&gradout_file);
         }
         // update weights
-        let gw: Matrix = (0..w).map(|j|
-            (0..d).map(|k|
-                (0..h).map(|i| x[i][j] * gy[i][k]).sum()
-            ).collect()
-        ).collect();
+        let gw: Matrix = (0..w)
+            .map(|j| {
+                (0..d)
+                    .map(|k| (0..h).map(|i| x[i][j] * gy[i][k]).sum())
+                    .collect()
+            })
+            .collect();
 
         // L2 regularization
         if opt.l2 > 0.0 {
@@ -83,7 +89,6 @@ fn main() {
                     weight[j][k] *= wr;
                 }
             }
-
         }
         // min Loss
         for j in 0..w {
@@ -91,7 +96,6 @@ fn main() {
                 weight[j][k] -= gw[j][k] * opt.lr;
             }
         }
-        matrix::write_to_file(&weight, &opt.weightfile);
-
+        weight.write_to_file(&opt.weightfile);
     }
 }

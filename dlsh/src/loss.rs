@@ -1,6 +1,5 @@
 mod data;
-use data::matrix;
-use data::matrix::Matrix;
+use data::{Matrix, Row};
 
 extern crate structopt;
 use structopt::StructOpt;
@@ -14,6 +13,8 @@ struct Opts {
     truefile: String,
     #[structopt(short = "o", long = "out")]
     gradout: Option<String>,
+    #[structopt(short = "s", long = "summary", default_value = "nothing")]
+    summary: String,
 }
 
 const EPS: f32 = 1e-9;
@@ -23,75 +24,88 @@ fn log(x: f32) -> f32 {
     (if x < EPS { EPS } else { x }).ln()
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 enum Loss {
     MSE,
     KL,
 }
 
-use Loss::*;
-
 impl Loss {
     fn forward(&self, x: f32, y: f32) -> f32 {
         match self {
-            MSE => {
-                (x - y).powi(2)
-            },
-            KL => {
-                x * (log(x) - log(y))
-            },
+            Loss::MSE => (x - y).powi(2),
+            Loss::KL => x * (log(x) - log(y)),
         }
     }
     fn backward(&self, x: f32, y: f32) -> f32 {
         match self {
-            MSE => {
-                x - y
-            },
-            KL => {
-                log(x) - log(y) + 1.0
-            },
+            Loss::MSE => x - y,
+            Loss::KL => log(x) - log(y) + 1.0,
         }
     }
+}
 
+#[derive(Debug)]
+enum LossSummary {
+    Nothing,
+    Average,
+}
+
+impl LossSummary {
+    fn call(&self, x: &Matrix) {
+        match self {
+            LossSummary::Nothing => x.write(),
+            LossSummary::Average => {
+                let (h, w) = x.shape();
+                let mut sum = Row::zeros(w);
+                for row in x.data.iter() {
+                    sum = &sum + row;
+                }
+                sum = &sum / h as f32;
+                let avg = Matrix { data: vec![sum] };
+                avg.write()
+            }
+        }
+    }
 }
 
 fn main() {
     let opt = Opts::from_args();
 
-    let x = matrix::read();
-    let (h, w) = matrix::shape(&x);
-
-    let y = matrix::read_from_file(&opt.truefile);
-    if matrix::shape(&y) != (h, w) {
-        panic!(format!(
-            "Imcompatible shape. Can accept same shape matrices: shape(input) = {:?}, shape(true) = {:?}",
-            matrix::shape(&x),
-            matrix::shape(&y)));
-    }
-
     let loss = match opt.losstype.as_ref() {
-        "mse" => MSE,
-        "kl" => KL,
-        _ => {
-            panic!(format!("Unknown loss type: {}", opt.losstype))
-        },
+        "mse" => Loss::MSE,
+        "kl" => Loss::KL,
+        _ => panic!(format!("Unknown loss type: {}", opt.losstype)),
     };
 
-    let z: Matrix = (0..h).map(|i|
-        (0..w).map(|j|
-            loss.forward(x[i][j], y[i][j])
-        ).collect()
-    ).collect();
+    let summary = match opt.summary.as_ref() {
+        "Average" | "average" => LossSummary::Average,
+        _ => LossSummary::Nothing,
+    };
 
-    matrix::write(&z);
+    let x = Matrix::read();
+    let (h, w) = x.shape();
 
-    if let Some(gradout_file) = opt.gradout {
-        let g: Matrix = (0..h).map(|i|
-            (0..w).map(|j|
-                loss.backward(x[i][j], y[i][j])
-            ).collect()
-        ).collect();
-        matrix::write_to_file(&g, &gradout_file);
+    let y = Matrix::read_from_file(&opt.truefile);
+    if y.shape() != (h, w) {
+        panic!(format!(
+            "[{:?}] Imcompatible shape. Can accept same shape matrices: shape(input) = {:?}, shape(true) = {:?}",
+            loss,
+            x.shape(),
+            y.shape()));
     }
 
+    let z: Matrix = (0..h)
+        .map(|i| (0..w).map(|j| loss.forward(x[i][j], y[i][j])).collect())
+        .collect();
+
+    // Report average
+    summary.call(&z);
+
+    if let Some(gradout_file) = opt.gradout {
+        let g: Matrix = (0..h)
+            .map(|i| (0..w).map(|j| loss.backward(x[i][j], y[i][j])).collect())
+            .collect();
+        g.write_to_file(&gradout_file);
+    }
 }
